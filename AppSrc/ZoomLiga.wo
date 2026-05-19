@@ -7,8 +7,10 @@ Use cWebPanel.pkg
 Use cWebMenuGroup.pkg
 Use cWebMenuItem.pkg
 Use cWebForm.pkg
+Use SelectEquipo.wo
 
 Use cligaDataDictionary.dd
+Use cequipoDataDictionary.dd
 
 Object oZoomLiga is a cWebView
     Set piColumnCount to 12
@@ -20,11 +22,17 @@ Object oZoomLiga is a cWebView
     Set piMaxWidth to 1024
 
     Object oliga_DD is a cligaDataDictionary
-    End_Object 
+    End_Object
 
-    Set Main_DD To oliga_DD
-    Set Server  To oliga_DD
+    // CLAVE del From Parent: oequipo_DD tiene DDO_Server apuntando a oliga_DD
+    // Esto le dice a la barra libre: "Equipo es hijo de Liga"
+    // Cuando naveguemos a SelectEquipo, filtrara solo los equipos de esta liga
+    Object oequipo_DD is a cequipoDataDictionary
+        Set DDO_Server to oliga_DD
+    End_Object
 
+    Set Main_DD to oliga_DD
+    Set Server  to oliga_DD
 
     Object oWebMainPanel is a cWebPanel
         Set piColumnCount to 12
@@ -36,7 +44,7 @@ Object oZoomLiga is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "Nombre"
-        End_Object 
+        End_Object
 
         Object oligaPais is a cWebForm
             Entry_Item liga.Pais
@@ -44,7 +52,7 @@ Object oZoomLiga is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "Pais"
-        End_Object 
+        End_Object
 
         Object oligaEquipos is a cWebForm
             Entry_Item liga.Equipos
@@ -52,7 +60,7 @@ Object oZoomLiga is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "Equipos"
-        End_Object 
+        End_Object
 
         Object oligaEquiposMax is a cWebForm
             Entry_Item liga.EquiposMax
@@ -60,8 +68,8 @@ Object oZoomLiga is a cWebView
             Set piColumnIndex to 0
             Set peLabelPosition to lpTop
             Set psLabel to "EquiposMax"
-        End_Object 
-    End_Object 
+        End_Object
+    End_Object
 
     Object oActionGroup is a cWebMenuGroup
 
@@ -73,7 +81,7 @@ Object oZoomLiga is a cWebView
                 Send Request_Save
             End_Procedure
 
-        End_Object 
+        End_Object
 
         Object oEditBtn is a cWebMenuItem
             Set psCSSClass to "WebEditMenuItem"
@@ -83,7 +91,7 @@ Object oZoomLiga is a cWebView
                 Send SetActionButtons
             End_Procedure
 
-        End_Object 
+        End_Object
 
         Object oDeleteBtn is a cWebMenuItem
             Set psCSSClass to "WebDeleteMenuItem"
@@ -94,7 +102,7 @@ Object oZoomLiga is a cWebView
                 Send Request_Delete
             End_Procedure
 
-        End_Object 
+        End_Object
 
         Object oCancelChangesBtn is a cWebMenuItem
             Set psCSSClass to "WebIcon_Refresh"
@@ -104,8 +112,40 @@ Object oZoomLiga is a cWebView
                 Send RefreshRecord
             End_Procedure
 
-        End_Object 
-    End_Object 
+        End_Object
+
+        // FROM PARENT: ZoomLiga (padre) -> SelectEquipo (hijo)
+        // Liga es el padre porque Equipo tiene FK apuntando a Liga (equipo.LigaID)
+        // La barra libre filtrara automaticamente los equipos de esta liga
+        Object oEquiposBtn is a cWebMenuItem
+            Set psCSSClass to "WebIcon_List"
+            Set psCaption to "Ver Equipos de esta Liga"
+            Set peActionDisplay to adMenu
+
+            WebRegisterPath ntNavigateForward oSelectEquipo
+
+            // EVENTO 1 - OnGetNavigateForwardData
+            // InvokingObject: oEquiposBtn
+            // FROM PARENT: Liga (padre) navega hacia Equipo (hijo)
+            // La barra libre ve que oequipo_DD.DDO_Server = oliga_DD
+            // y filtra los equipos automaticamente por la liga actual
+            Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+                Send ShowInfoBox "FROM PARENT|InvokingObject: oEquiposBtn|Liga (padre) navega a Equipo (hijo)|Equipo.LigaID apunta a Liga|La barra libre filtrara solo los equipos de esta liga" "Evento 1: OnGetNavigateForwardData"
+            End_Procedure
+
+            Procedure OnClick
+                Send NavigatePath
+            End_Procedure
+
+            // EVENTO 4 - OnNavigateBack
+            // Vuelvo de SelectEquipo
+            Procedure OnNavigateBack tWebNavigateData NavigateData Handle hoInvokingView Handle hoInvokingObject
+                Send ShowInfoBox "FROM PARENT|He vuelto de SelectEquipo al ZoomLiga|Ciclo cerrado" "Evento 4: OnNavigateBack"
+            End_Procedure
+
+        End_Object
+
+    End_Object
 
     Procedure SetActionButtons
         tWebNavigateData NavigateData
@@ -116,7 +156,6 @@ Object oZoomLiga is a cWebView
         Get GetNavigateData to NavigateData
         Get HasRecord of hoDD to bHasRecord
 
-        // let's hide all buttons and then Show the ones we want
         WebSet pbRender of oEditBtn to False
         WebSet pbRender of oSaveBtn to False
         WebSet pbRender of oCancelChangesBtn to False
@@ -133,30 +172,30 @@ Object oZoomLiga is a cWebView
     End_Procedure
 
     Procedure OnViewSaved Handle hoServer Boolean bChanged
-        // Close after save
         Send NavigateClose Self
     End_Procedure
 
-    // this will close the view after a delete
     Procedure OnViewDeleted Handle hoDDO
         Send NavigateClose Self
     End_Procedure
 
+    // EVENTO 2 - OnNavigateForward (puerta de entrada al ZoomLiga)
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
         Case Begin
             Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a propbably a main file Select to Zoom.
+                Send ShowInfoBox "FROM MAIN|He llegado al ZoomLiga|La barra libre ha cargado la liga" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down.
+                Send ShowInfoBox "FROM PARENT|He llegado al ZoomLiga desde un padre" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent Zoom from a Zoom.
+                Send ShowInfoBox "FROM CHILD|He llegado al ZoomLiga desde un hijo" "Evento 2: OnNavigateForward"
                 Case Break
 
-            Case Else // must be nfUndefined
+            Case Else
+                Send ShowInfoBox "UNDEFINED|He llegado al ZoomLiga|Sin relacion entre DD" "Evento 2: OnNavigateForward"
 
         Case End
 
@@ -164,4 +203,4 @@ Object oZoomLiga is a cWebView
 
     End_Procedure
 
-End_Object 
+End_Object

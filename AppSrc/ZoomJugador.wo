@@ -1,4 +1,5 @@
-﻿// C:\DataFlex Projects\futbol\AppSrc\ZoomJugador.wo
+﻿
+// C:\DataFlex Projects\futbol\AppSrc\ZoomJugador.wo
 // Detalle de jugador
 //
 
@@ -8,6 +9,7 @@ Use cWebMenuGroup.pkg
 Use cWebMenuItem.pkg
 Use cWebForm.pkg
 Use SelectEquipo.wo
+Use SelectPosicion.wo
 
 Use cligaDataDictionary.dd
 Use cequipoDataDictionary.dd
@@ -26,16 +28,15 @@ Object oZoomJugador is a cWebView
     End_Object 
 
     Object oequipo_DD is a cequipoDataDictionary
-        Set DDO_Server To oliga_DD
+        Set DDO_Server to oliga_DD
     End_Object 
 
     Object ojugador_DD is a cjugadorDataDictionary
-        Set DDO_Server To oequipo_DD
+        Set DDO_Server to oequipo_DD
     End_Object 
 
-    Set Main_DD To ojugador_DD
-    Set Server  To ojugador_DD
-
+    Set Main_DD to ojugador_DD
+    Set Server  to ojugador_DD
 
     Object oWebMainPanel is a cWebPanel
         Set piColumnCount to 12
@@ -123,6 +124,32 @@ Object oZoomJugador is a cWebView
             End_Procedure
 
         End_Object 
+
+        // UNDEFINED: ZoomJugador -> SelectPosicion
+        // No hay FK directa entre Jugador y Posicion (van por JugadorPosicion).
+        // La barra libre NO hace nada - gestion completamente manual.
+        // Por eso usamos ntNavigateForwardCustom: no intercambia info entre DD.
+        Object oPosicionBtn is a cWebMenuItem
+            Set psCSSClass to "WebIcon_Tag"
+            Set psCaption to "Ver Posiciones"
+            Set peActionDisplay to adMenu
+
+            WebRegisterPath ntNavigateForwardCustom oSelectPosicion
+
+            // EVENTO 1 - OnGetNavigateForwardData
+            // InvokingObject: oPosicionBtn
+            // UNDEFINED: no hay relacion entre DD de Jugador y Posicion.
+            // La barra libre no puede hacer nada - sin barra libre.
+            Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+                Send ShowInfoBox "UNDEFINED|InvokingObject: oPosicionBtn|No hay FK directa entre Jugador y Posicion|Sin barra libre - gestion manual|Usando ntNavigateForwardCustom" "Evento 1: OnGetNavigateForwardData"
+            End_Procedure
+
+            Procedure OnClick
+                Send NavigatePath
+            End_Procedure
+
+        End_Object 
+
     End_Object 
 
     Procedure SetActionButtons
@@ -134,7 +161,6 @@ Object oZoomJugador is a cWebView
         Get GetNavigateData to NavigateData
         Get HasRecord of hoDD to bHasRecord
 
-        // let's hide all buttons and then Show the ones we want
         WebSet pbRender of oEditBtn to False
         WebSet pbRender of oSaveBtn to False
         WebSet pbRender of oCancelChangesBtn to False
@@ -151,30 +177,31 @@ Object oZoomJugador is a cWebView
     End_Procedure
 
     Procedure OnViewSaved Handle hoServer Boolean bChanged
-        // Close after save
         Send NavigateClose Self
     End_Procedure
 
-    // this will close the view after a delete
     Procedure OnViewDeleted Handle hoDDO
         Send NavigateClose Self
     End_Procedure
 
+    // EVENTO 2 - OnNavigateForward (puerta de entrada al ZoomJugador)
+    // Aqui veremos que llega como nfUndefined cuando viene del Dashboard.
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
         Case Begin
             Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a propbably a main file Select to Zoom.
+                Send ShowInfoBox "FROM MAIN|He llegado al ZoomJugador|La barra libre ha cargado el jugador" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down.
+                Send ShowInfoBox "FROM PARENT|He llegado al ZoomJugador desde un padre" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent Zoom from a Zoom.
+                Send ShowInfoBox "FROM CHILD|He llegado al ZoomJugador desde un hijo" "Evento 2: OnNavigateForward"
                 Case Break
 
-            Case Else // must be nfUndefined
+            Case Else
+                Send ShowInfoBox "UNDEFINED|He llegado al ZoomJugador|Sin relacion entre DD|Sin barra libre" "Evento 2: OnNavigateForward"
 
         Case End
 
@@ -182,4 +209,4 @@ Object oZoomJugador is a cWebView
 
     End_Procedure
 
-End_Object 
+End_Object
