@@ -26,16 +26,15 @@ Object oZoomEntrenador is a cWebView
     End_Object 
 
     Object oequipo_DD is a cequipoDataDictionary
-        Set DDO_Server To oliga_DD
+        Set DDO_Server to oliga_DD
     End_Object 
 
     Object oentrenador_DD is a centrenadorDataDictionary
-        Set DDO_Server To oequipo_DD
+        Set DDO_Server to oequipo_DD
     End_Object 
 
-    Set Main_DD To oentrenador_DD
-    Set Server  To oentrenador_DD
-
+    Set Main_DD to oentrenador_DD
+    Set Server  to oentrenador_DD
 
     Object oWebMainPanel is a cWebPanel
         Set piColumnCount to 12
@@ -65,6 +64,10 @@ Object oZoomEntrenador is a cWebView
             Set psLabel to "Nacionalidad"
         End_Object 
 
+        // FROM CHILD: ZoomEntrenador (hijo) -> SelectEquipo (padre)
+        // Entrenador tiene FK a Equipo (EquipoID)
+        // Entrenador apunta a Equipo = Entrenador es hijo, Equipo es padre
+        // Estoy subiendo de hijo a padre para seleccionar o cambiar el equipo
         Object oequipoID is a cWebForm
             Entry_Item equipo.ID
             Set piColumnSpan to 3
@@ -78,6 +81,22 @@ Object oZoomEntrenador is a cWebView
             Procedure OnPrompt
                 Send NavigatePath
             End_Procedure
+
+            // EVENTO 1 - OnGetNavigateForwardData
+            // InvokingObject: oequipoID (el prompt button)
+            // FROM CHILD: Entrenador (hijo) sube hacia Equipo (padre)
+            // para seleccionar o cambiar el equipo del entrenador
+            Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
+                Send ShowInfoBox "FROM CHILD|InvokingObject: oequipoID|Entrenador (hijo) navega a Equipo (padre)|Entrenador.EquipoID apunta a Equipo|La barra libre mostrara el equipo actual" "Evento 1: OnGetNavigateForwardData"
+            End_Procedure
+
+            // EVENTO 4 - OnNavigateBack
+            // Vuelvo de SelectEquipo habiendo seleccionado un equipo
+            // La barra libre actualiza el EquipoID automaticamente
+            Procedure OnNavigateBack tWebNavigateData NavigateData Handle hoInvokingView Handle hoInvokingObject
+                Send ShowInfoBox "FROM CHILD|InvokingObject: oequipoID|He vuelto de SelectEquipo|La barra libre ha actualizado el EquipoID con el equipo seleccionado" "Evento 4: OnNavigateBack"
+            End_Procedure
+
         End_Object 
     End_Object 
 
@@ -134,7 +153,6 @@ Object oZoomEntrenador is a cWebView
         Get GetNavigateData to NavigateData
         Get HasRecord of hoDD to bHasRecord
 
-        // let's hide all buttons and then Show the ones we want
         WebSet pbRender of oEditBtn to False
         WebSet pbRender of oSaveBtn to False
         WebSet pbRender of oCancelChangesBtn to False
@@ -151,30 +169,32 @@ Object oZoomEntrenador is a cWebView
     End_Procedure
 
     Procedure OnViewSaved Handle hoServer Boolean bChanged
-        // Close after save
         Send NavigateClose Self
     End_Procedure
 
-    // this will close the view after a delete
     Procedure OnViewDeleted Handle hoDDO
         Send NavigateClose Self
     End_Procedure
 
+    // EVENTO 2 - OnNavigateForward (puerta de entrada al ZoomEntrenador)
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
         Case Begin
             Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a propbably a main file Select to Zoom.
+                // FROM MAIN: vengo del SelectEntrenador
+                // La barra libre ha cargado el entrenador seleccionado
+                Send ShowInfoBox "FROM MAIN|He llegado al ZoomEntrenador|La barra libre ha cargado el entrenador" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down.
+                Send ShowInfoBox "FROM PARENT|He llegado al ZoomEntrenador desde un padre" "Evento 2: OnNavigateForward"
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent Zoom from a Zoom.
+                Send ShowInfoBox "FROM CHILD|He llegado al ZoomEntrenador desde un hijo" "Evento 2: OnNavigateForward"
                 Case Break
 
-            Case Else // must be nfUndefined
+            Case Else
+                Send ShowInfoBox "UNDEFINED|He llegado al ZoomEntrenador|Sin relacion entre DD" "Evento 2: OnNavigateForward"
 
         Case End
 
@@ -182,4 +202,4 @@ Object oZoomEntrenador is a cWebView
 
     End_Procedure
 
-End_Object 
+End_Object

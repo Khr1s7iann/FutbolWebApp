@@ -22,15 +22,14 @@ Object oSelectEquipo is a cWebView
     Set piMaxWidth to 1024
 
     Object oliga_DD is a cligaDataDictionary
-    End_Object 
+    End_Object
 
     Object oequipo_DD is a cequipoDataDictionary
-        Set DDO_Server To oliga_DD
-    End_Object 
+        Set DDO_Server to oliga_DD
+    End_Object
 
-    Set Main_DD To oequipo_DD
-    Set Server  To oequipo_DD
-
+    Set Main_DD to oequipo_DD
+    Set Server  to oequipo_DD
 
     Object oList is a cWebList
         Set piColumnSpan to 0
@@ -44,7 +43,7 @@ Object oSelectEquipo is a cWebView
             Entry_Item equipo.Nombre
             Set psCaption to "equipo.Nombre"
             Set piWidth to 1491
-        End_Object 
+        End_Object
 
         Object oDetailButton is a cWebColumnButton
             Set psCaption to "btn"
@@ -65,17 +64,14 @@ Object oSelectEquipo is a cWebView
                 Move True to NavigateData.bReadOnly
             End_Procedure
 
-        End_Object 
+        End_Object
 
         Object oligaID is a cWebColumn
             Entry_Item liga.ID
             Set psCaption to "equipo.LigaID"
             Set piWidth to 124
             Set pbNewLine to True
-        End_Object 
-
-// ToDo: Fill in the from-parent child Select view object name for navigate forward
-//        WebRegisterPath ntNavigateForward oSelectView
+        End_Object
 
         Procedure OnRowClick String sRowId
             tWebNavigateData NavigateData
@@ -83,23 +79,24 @@ Object oSelectEquipo is a cWebView
 
             Case Begin
                 Case (NavigateData.eNavigateType = nfFromParent)
-// ToDo: Fill in the from-parent child Select view object name for navigate forward
-Error DFERR_PROGRAM "NavigateForward to this from-parent child Select view not yet defined"
-//                    Send NavigateForward of oSelectView Self
+                    // FROM PARENT: vengo de ZoomLiga
+                    // El usuario selecciona un equipo y vuelvo al padre
+                    Send NavigateClose Self
                     Case Break
 
                 Case (NavigateData.eNavigateType = nfFromChild)
+                    // FROM CHILD: vengo de un hijo que quiere elegir su padre
                     Send NavigateClose Self
                     Case Break
 
                 Case (NavigateData.eNavigateType = nfFromMain)
+                    // FROM MAIN: mismo DD
                     Send NavigateClose Self
                     Case Break
 
-                Case Else // must be nfUndefined
-// ToDo: Fill in the from-parent child Select view object name for navigate forward
-Error DFERR_PROGRAM "NavigateForward to this from-parent child Select view not yet defined"
-//                    Send NavigateForward of oSelectView Self
+                Case Else
+                    // UNDEFINED: vengo del Dashboard, no hacer nada
+                    // El boton i es el que navega al Zoom
 
             Case End
         End_Procedure
@@ -108,7 +105,7 @@ Error DFERR_PROGRAM "NavigateForward to this from-parent child Select view not y
             Move True to NavigateData.bReadOnly
         End_Procedure
 
-    End_Object 
+    End_Object
 
     Object oActionGroup is a cWebMenuGroup
 
@@ -120,7 +117,7 @@ Error DFERR_PROGRAM "NavigateForward to this from-parent child Select view not y
                 Send Search of oList
             End_Procedure
 
-        End_Object 
+        End_Object
 
         Object oNewButton is a cWebMenuItem
             Set psCSSClass to "WebClearMenuItem"
@@ -136,33 +133,44 @@ Error DFERR_PROGRAM "NavigateForward to this from-parent child Select view not y
                 Move True to NavigateData.bNewRecord
             End_Procedure
 
-        End_Object 
-    End_Object 
+        End_Object
+    End_Object
 
+    // EVENTO 2 - OnNavigateForward (puerta de entrada a SelectEquipo)
+    // Cuando vengo FROM PARENT (desde ZoomLiga):
+    // la barra libre ya ha filtrado los equipos de esa liga
+    // Solo tengo que ocultar el New y mostrar un mensaje
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
         WebSet pbRender of oNewButton to True
         WebSet pbRender of oDetailButton to True
 
         Case Begin
             Case (NavigateData.eNavigateType = nfFromParent)
-                // If from parent, this is a constrained drill down
+                // FROM PARENT: vengo de ZoomLiga
+                // La barra libre ha filtrado los equipos de esa liga automaticamente
+                // Oculto New porque solo estoy consultando, no creando
+                Send ShowInfoBox "FROM PARENT|He llegado al SelectEquipo desde ZoomLiga|La barra libre ha filtrado los equipos de esta liga|New Button ocultado" "Evento 2: OnNavigateForward"
+                WebSet pbRender of oNewButton to False
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromChild)
-                // If from child, this is a probably a parent lookup from a Zoom
-                Case Break
-
-            Case (NavigateData.eNavigateType = nfFromMain)
-                // If from main, this is a probably a main-file lookup from a Zoom
+                // FROM CHILD: vengo de un hijo que quiere elegir su equipo padre
+                // Oculto New y Detail - solo seleccionar
+                Send ShowInfoBox "FROM CHILD|He llegado al SelectEquipo desde un hijo|Solo seleccionar equipo|New y Detail ocultados" "Evento 2: OnNavigateForward"
+                WebSet pbRender of oNewButton to False
                 WebSet pbRender of oDetailButton to False
                 Case Break
 
-            Case Else // must be nfUndefined
-                // This may be the start of a drilldown query or this may be used for some kind of custom query.
+            Case (NavigateData.eNavigateType = nfFromMain)
+                Send ShowInfoBox "FROM MAIN|Mismo DD|Detail ocultado" "Evento 2: OnNavigateForward"
+                WebSet pbRender of oDetailButton to False
+                Case Break
+
+            Case Else
+                // UNDEFINED: vengo del Dashboard, muestro todo
 
         Case End
 
     End_Procedure
 
-
-End_Object 
+End_Object
