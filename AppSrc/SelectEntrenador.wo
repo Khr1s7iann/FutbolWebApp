@@ -51,9 +51,6 @@ Object oSelectEntrenador is a cWebView
             Set piWidth to 745
         End_Object 
 
-        // FROM MAIN: SelectEntrenador -> ZoomEntrenador
-        // Mismo DD (centrenador) en invocante e invocada.
-        // La barra libre carga el entrenador seleccionado sola.
         Object oDetailButton is a cWebColumnButton
             Set psCaption to "btn"
             Set piWidth to 45
@@ -69,19 +66,8 @@ Object oSelectEntrenador is a cWebView
                 Send NavigatePath
             End_Procedure
 
-            // EVENTO 1 - OnGetNavigateForwardData
-            // En el InvokingObject, ANTES de navegar.
-            // FROM MAIN: mismo DD, navegamos en solo lectura.
             Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
                 Move True to NavigateData.bReadOnly
-                Send ShowInfoBox "FROM MAIN|InvokingObject: oDetailButton|Se produce ANTES de navegar|bReadOnly = True" "Evento 1: OnGetNavigateForwardData"
-            End_Procedure
-
-            // EVENTO 4 - OnNavigateBack
-            // En el InvokingObject, cuando VUELVES de la vista invocada.
-            // Cierra el ciclo de la navegacion.
-            Procedure OnNavigateBack tWebNavigateData NavigateData Handle hoInvokingView Handle hoInvokingObject
-                Send ShowInfoBox "FROM MAIN|InvokingObject: oDetailButton|Se produce al VOLVER del ZoomEntrenador|Ciclo cerrado" "Evento 4: OnNavigateBack"
             End_Procedure
 
         End_Object 
@@ -106,22 +92,19 @@ Object oSelectEntrenador is a cWebView
 
             Case Begin
                 Case (NavigateData.eNavigateType = nfFromParent)
-                    Send ShowInfoBox "FROM PARENT|Vengo de una vista padre|Cierro y devuelvo seleccion" "Tipo de navegacion"
                     Send NavigateClose Self
                     Case Break
 
                 Case (NavigateData.eNavigateType = nfFromChild)
-                    Send ShowInfoBox "FROM CHILD|Vengo de una vista hijo|Cierro y devuelvo seleccion" "Tipo de navegacion"
                     Send NavigateClose Self
                     Case Break
 
                 Case (NavigateData.eNavigateType = nfFromMain)
-                    Send ShowInfoBox "FROM MAIN|Mismo DD|Cierro navegacion" "Tipo de navegacion"
                     Send NavigateClose Self
                     Case Break
 
                 Case Else
-                    Send ShowInfoBox "UNDEFINED|Sin relacion entre DD|Sin barra libre" "Tipo de navegacion"
+                    // UNDEFINED: vengo del Dashboard, no hacer nada
 
             Case End
         End_Procedure
@@ -154,41 +137,33 @@ Object oSelectEntrenador is a cWebView
                 Send NavigatePath
             End_Procedure
 
-            // FROM MAIN: mismo DD, nuevo registro
             Procedure OnGetNavigateForwardData tWebNavigateData ByRef NavigateData Handle hoToView
                 Move True to NavigateData.bNewRecord
-                Send ShowInfoBox "FROM MAIN|InvokingObject: oNewButton|bNewRecord = True|Navego a crear nuevo entrenador" "Evento 1: OnGetNavigateForwardData"
             End_Procedure
 
         End_Object 
     End_Object 
 
-    // EVENTO 2 - OnNavigateForward (puerta de entrada a SelectEntrenador)
-    // Se produce cuando LLEGO a esta vista desde otra.
-    // Customizo lo que se muestra segun de donde vengo.
     Procedure OnNavigateForward tWebNavigateData NavigateData Integer hoInvokingView Integer hoInvokingObject
         WebSet pbRender of oNewButton to True
         WebSet pbRender of oDetailButton to True
 
         Case Begin
             Case (NavigateData.eNavigateType = nfFromParent)
-                Send ShowInfoBox "FROM PARENT|Llego desde una vista padre|Solo muestro los hijos de ese padre|New Button ocultado" "Evento 2: OnNavigateForward"
                 WebSet pbRender of oNewButton to False
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromChild)
-                Send ShowInfoBox "FROM CHILD|Llego desde un hijo que quiere elegir|New y Detail ocultados" "Evento 2: OnNavigateForward"
                 WebSet pbRender of oNewButton to False
                 WebSet pbRender of oDetailButton to False
                 Case Break
 
             Case (NavigateData.eNavigateType = nfFromMain)
-                Send ShowInfoBox "FROM MAIN|Mismo DD en ambas vistas|Detail ocultado" "Evento 2: OnNavigateForward"
                 WebSet pbRender of oDetailButton to False
                 Case Break
 
             Case Else
-                Send ShowInfoBox "UNDEFINED|Sin relacion entre DD|Sin barra libre" "Evento 2: OnNavigateForward"
+                // UNDEFINED: vengo del Dashboard, muestro todo
 
         Case End
 
